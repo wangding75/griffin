@@ -40,10 +40,12 @@ public class TaskDispatcherScheduler {
     public void setWc(WorkerContext wc) {
         this.wc = wc;
     }
+
     @Autowired
     public void setDqWorkerInstanceService(DQWorkerInstanceService dqWorkerInstanceService) {
         this.dqWorkerInstanceService = dqWorkerInstanceService;
     }
+
     @Autowired
     public void setDqStageService(DQStageService dqStageService) {
         this.dqStageService = dqStageService;
@@ -93,41 +95,11 @@ public class TaskDispatcherScheduler {
             log.error("scanRecordingTask failed, ex:", e);
         } finally {
             // assign task by status
-            waittingToRemoveFromWaitingList.forEach(this::offerToSpecQueueByStatus);
+            waittingToRemoveFromWaitingList.forEach(wc::offerToSpecQueueByStatus);
             // remove from queue
             if (CollectionUtils.isNotEmpty(waittingToRemoveFromWaitingList)) wc.removeAll(wc.getWAITTING_TASK_QUEUE(), waittingToRemoveFromWaitingList);
         }
         log.info("doTaskDispatcherScheduler end.");
-    }
-
-    private void offerToSpecQueueByStatus(DQInstanceBO instance) {
-        DQInstanceStatus status = instance.getStatus();
-        switch (status) {
-            case WAITTING:
-//            case RUNNING:
-//            case SUBMITTING:
-            case RECORDING:
-                wc.offerToRecordingTaskQueue(instance);
-                break;
-            case EVALUATING:
-                wc.offerToEvaluatingTaskQueue(instance);
-                break;
-//            case EVALUATE_ALERTING:
-            case ALERTING:
-            case FAILED_ALERTING:
-                wc.offerToAlertingTaskQueue(instance);
-                break;
-            case FAILED:
-                wc.addFailedDQInstanceInfo(instance);
-                break;
-            case SUCCESS:
-                wc.addSuccessDQInstanceInfo(instance);
-                break;
-            default:
-                // todo Unknown state Drop
-                log.warn("Unknown status, id : {}, status : {}, instance: {}", instance.getId(), status, instance);
-                break;
-        }
     }
 
     @Scheduled(fixedDelay = 5 * 1000L)
@@ -150,7 +122,7 @@ public class TaskDispatcherScheduler {
             log.error("scanRecordingTask failed, ex:", e);
         } finally {
             // 根据状态分发到指定队列
-            waittingToRemoveFromRecordingList.forEach(this::offerToSpecQueueByStatus);
+            waittingToRemoveFromRecordingList.forEach(wc::offerToSpecQueueByStatus);
             // 从 record 队列移除
             if (CollectionUtils.isNotEmpty(waittingToRemoveFromRecordingList)) wc.removeAll(wc.getRECORDING_TASK_QUEUE(), waittingToRemoveFromRecordingList);
         }
@@ -194,12 +166,12 @@ public class TaskDispatcherScheduler {
                         DQInstanceStatus dqInstanceStatus = evaluatingStage.hasSuccess() ? DQInstanceStatus.ALERTING : DQInstanceStatus.FAILED_ALERTING;
                         dqWorkerInstanceService.updateStatus(dqInstance, dqInstanceStatus);
                     }
-                    offerToSpecQueueByStatus(dqInstance);
+                    wc.offerToSpecQueueByStatus(dqInstance);
                 } catch (Exception e) {
                     if (dqInstance != null) {
                         log.error("scanEvaluatingTask doEvalute failed, id : {}， instance : {}, ex:", dqInstance.getId(), dqInstance, e);
                         dqWorkerInstanceService.updateStatus(dqInstance, DQInstanceStatus.FAILED_ALERTING);
-                        offerToSpecQueueByStatus(dqInstance);
+                        wc.offerToSpecQueueByStatus(dqInstance);
                     } else {
                         log.error("scanEvaluatingTask poll instance failed. ex:", e);
                     }
@@ -223,7 +195,7 @@ public class TaskDispatcherScheduler {
                         DQInstanceStatus dqInstanceStatus = alertingStage.hasSuccess()? DQInstanceStatus.SUCCESS : DQInstanceStatus.FAILED;
                         dqWorkerInstanceService.updateStatus(dqInstance, dqInstanceStatus);
                     }
-                    offerToSpecQueueByStatus(dqInstance);
+                    wc.offerToSpecQueueByStatus(dqInstance);
                 } catch (Exception e) {
                     if (dqInstance != null) {
                         log.error("scanAlertingTask doAlert failed, id : {}， instance : {}, ex:", dqInstance.getId(), dqInstance, e);
@@ -233,7 +205,7 @@ public class TaskDispatcherScheduler {
                             // retry times less than 5, do not modify status and put task back
                         }
                         // put task back
-                        offerToSpecQueueByStatus(dqInstance);
+                        wc.offerToSpecQueueByStatus(dqInstance);
                     } else {
                         log.error("scanAlertingTask poll instance failed. ex:", e);
                     }

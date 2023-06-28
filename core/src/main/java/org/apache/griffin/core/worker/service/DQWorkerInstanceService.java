@@ -50,6 +50,7 @@ public class DQWorkerInstanceService {
     public DQInstanceBO getById(Long id) {
         if (id == null) {
             log.error("Unknown instance id: null");
+            return null;
         }
         DQInstanceEntity ins = dqInstanceDao.getById(id);
         if (ins == null) {
@@ -64,7 +65,7 @@ public class DQWorkerInstanceService {
     private void saveDqcInstanceEntityFromBO(DQInstanceBO dqInstanceBO) {
     }
 
-    private DQInstanceBO constructInstance(Long id) {
+    public DQInstanceBO constructInstance(Long id) {
         log.info("constructInstance id: {}", id);
         GriffinDQContentInstanceMap contentInstanceMap = dqContentInstanceMapDao.getContentInstanceMapByInstanceId(id);
         Long instanceId = contentInstanceMap.getInstanceId();
@@ -72,7 +73,11 @@ public class DQWorkerInstanceService {
         return dqInstanceFactory.constructInstance(instanceId, dqcId);
     }
 
-    private DQInstanceBO recoveryInstance(DQInstanceEntity instance) {
+    public DQInstanceBO recoveryInstance(DQInstanceEntity instance) {
         return dqInstanceFactory.recoveryInstance(instance);
+    }
+
+    public boolean isRepeatedInstanceId(Long instanceId) {
+        return false;
     }
 }

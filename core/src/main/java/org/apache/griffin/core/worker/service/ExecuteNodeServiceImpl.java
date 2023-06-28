@@ -2,8 +2,10 @@ package org.apache.griffin.core.worker.service;
 
 
 import io.grpc.stub.StreamObserver;
+import net.devh.boot.grpc.server.service.GrpcService;
 import org.apache.griffin.api.proto.protocol.*;
 
+@GrpcService
 public class ExecuteNodeServiceImpl extends ExecuteNodeServiceGrpc.ExecuteNodeServiceImplBase {
     @Override
     public void submitDQTask(SubmitDQTaskRequest request, StreamObserver<SubmitDQTaskResponse> responseObserver) {

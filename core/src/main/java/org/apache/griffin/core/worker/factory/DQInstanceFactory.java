@@ -5,6 +5,7 @@ import org.apache.griffin.api.dao.DQContentDao;
 import org.apache.griffin.api.entity.GriffinDQBusinessRule;
 import org.apache.griffin.api.entity.GriffinDQContent;
 import org.apache.griffin.api.dao.DQInstanceDao;
+import org.apache.griffin.api.entity.enums.DQInstanceStatus;
 import org.apache.griffin.api.entity.pojo.DQInstanceEntity;
 import org.apache.griffin.core.worker.entity.bo.DQInstanceBO;
 import org.apache.griffin.core.worker.entity.bo.task.DQBaseTask;
@@ -33,6 +34,7 @@ public class DQInstanceFactory {
         DQInstanceBO instance = new DQInstanceBO();
         instance.setId(id);
         instance.setDqcId(dqcId);
+        instance.setStatus(DQInstanceStatus.ACCEPTED);
         GriffinDQContent griffinDQContent = dqContentDao.getById(dqcId);
         // construct taskL
         List<GriffinDQBusinessRule> businessRuleList = dqBusinessRuleDao.getListByDqcId(dqcId);

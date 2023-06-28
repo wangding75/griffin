@@ -2,6 +2,8 @@ package org.apache.griffin.core.common.utils.context;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.griffin.api.entity.enums.DQInstanceStatus;
 import org.apache.griffin.core.worker.entity.bo.DQInstanceBO;
 import org.apache.griffin.core.worker.entity.enums.DQEngineEnum;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * Scope: Singleton
  */
 @Component
+@Slf4j
 public class WorkerContext {
 
     private final List<DQInstanceBO> WAITTING_TASK_QUEUE;
@@ -39,6 +42,33 @@ public class WorkerContext {
 
     public List<DQInstanceBO> getWAITTING_TASK_QUEUE() {
         return WAITTING_TASK_QUEUE;
+    }
+
+    public void offerToSpecQueueByStatus(DQInstanceBO instance) {
+        DQInstanceStatus status = instance.getStatus();
+        switch (status) {
+            case WAITTING:
+            case RECORDING:
+                this.offerToRecordingTaskQueue(instance);
+                break;
+            case EVALUATING:
+                this.offerToEvaluatingTaskQueue(instance);
+                break;
+            case ALERTING:
+            case FAILED_ALERTING:
+                this.offerToAlertingTaskQueue(instance);
+                break;
+            case FAILED:
+                this.addFailedDQInstanceInfo(instance);
+                break;
+            case SUCCESS:
+                this.addSuccessDQInstanceInfo(instance);
+                break;
+            default:
+                // todo Unknown state Drop
+                log.warn("Unknown status, id : {}, status : {}, instance: {}", instance.getId(), status, instance);
+                break;
+        }
     }
 
     public List<DQInstanceBO> getRECORDING_TASK_QUEUE() {
@@ -110,5 +140,13 @@ public class WorkerContext {
 
     public void addSuccessDQInstanceInfo(DQInstanceBO instance) {
 
+    }
+
+    public boolean canSubmitToQueue() {
+        return false;
+    }
+
+    public DQInstanceBO getById(Long instanceId) {
+        return null;
     }
 }
